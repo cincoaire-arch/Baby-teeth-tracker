@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>乳牙記錄</title>
+<style>
+  :root {
+    --primary: #29B6F6;
+    --card: #FFFFFF;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif; }
+  body { background: #EBF0F5; display: flex; justify-content: center; min-height: 100vh; }
+  
+  .app-container {
+    width: 100%;
+    max-width: 430px;
+    background: var(--card);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    position: relative;
+    padding-bottom: 30px;
+  }
+
+  /* 頂部導覽列 */
+  .nav-header {
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .nav-title { font-size: 18px; font-weight: 600; color: #111; }
+  .child-selector-box { display: flex; align-items: center; gap: 6px; }
+  .child-select {
+    padding: 4px 10px;
+    font-size: 13px;
+    border: 1px solid #29B6F6;
+    border-radius: 14px;
+    outline: none;
+    color: #0288D1;
+    font-weight: 600;
+    background: #E1F5FE;
+  }
+  .btn-icon {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #0288D1;
+    line-height: 1;
+  }
+
+  /* 寶寶資訊卡片 */
+  .baby-profile-bar {
+    background: #FAFAFA;
+    padding: 10px 16px;
+    margin: 8px 16px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border: 1px solid #EFEFEF;
+  }
+  .input-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .input-row label { color: #555; width: 65px; }
+  .input-row input {
+    flex: 1; border: 1px solid #ddd; border-radius: 6px; padding: 5px 8px; font-size: 13px; outline: none;
+  }
+  .delete-child-btn {
+    align-self: flex-end;
+    font-size: 11px;
+    color: #999;
+    border: none;
+    background: none;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  /* 統計膠囊 */
+  .stats-banner {
+    display: flex;
+    justify-content: space-around;
+    padding: 7px 14px;
+    background: #FFF9E6;
+    margin: 0 16px 6px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: #8C6B1F;
+  }
+
+  /* 牙齒圓環展示區 */
+  .teeth-circle-area {
+    position: relative;
+    width: 340px;
+    height: 375px;
+    margin: 0 auto 5px;
+  }
+  
+  /* 修正左右標示文字位置：移至齒列下方的空隙，避免重疊 */
+  .direction-label {
+    position: absolute;
+    font-size: 16px;
+    font-weight: 600;
+    color: #555;
+  }
+  .dir-right { left: 8px; top: 315px; }
+  .dir-left { right: 8px; top: 315px; }
+
+  /* 寶寶中央頭像 */
+  .center-baby {
+    position: absolute;
+    top: 45%; left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+  }
+  .baby-avatar {
+    width: 54px; height: 54px;
+    border-radius: 50%;
+    border: 2px solid #F5C242;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    background: #FFFDF7;
+  }
+  .baby-name-center { font-size: 14px; font-weight: 600; margin-top: 4px; color: #444; }
+  .baby-age-center { font-size: 12px; color: #888; }
+
+  /* 單顆牙齒節點 */
+  .tooth-item {
+    position: absolute;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    background: #FFFFFF;
+    border-width: 3px;
+    border-style: solid;
+    user-select: none;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+  }
+  .tooth-item:active { transform: translate(-50%, -50%) scale(0.92); }
+  .tooth-item .check-badge {
+    position: absolute;
+    top: -5px; right: -5px;
+    background: #27AE60;
+    color: white;
+    font-size: 10px;
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* 牙齒色彩規範 */
+  .color-blue { border-color: #29B6F6; color: #0288D1; }
+  .color-green { border-color: #4CAF50; color: #2E7D32; }
+  .color-mustard { border-color: #C09028; color: #8C6810; }
+  .color-purple { border-color: #BA68C8; color: #7B1FA2; }
+  .color-orange { border-color: #FB8C00; color: #E65100; }
+  .status-molt { opacity: 0.45; text-decoration: line-through; }
+
+  /* 列表樣式 */
+  .list-section { padding: 0 16px; margin-top: 6px; }
+  .list-header {
+    display: grid;
+    grid-template-columns: 1.2fr 1.2fr 1fr 20px;
+    font-size: 13px;
+    color: #666;
+    padding-bottom: 8px;
+    border-bottom: 1.5px solid #EEE;
+    text-align: left;
+  }
+  .record-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1.2fr 1fr 20px;
+    padding: 10px 0;
+    border-bottom: 1px solid #F3F3F3;
+    align-items: center;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .record-row:hover { background-color: #FAFAFA; }
+  .cell-name { font-weight: 500; color: #333; }
+  .cell-date-box { display: flex; flex-direction: column; }
+  .cell-age { font-weight: 600; color: #222; font-size: 12px; }
+  .cell-date { color: #888; font-size: 11px; }
+  .cell-molt { color: #888; font-size: 11px; }
+
+  /* 彈出視窗 (Modal) */
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 100;
+  }
+  .modal-content {
+    background: #FFF;
+    width: 100%;
+    max-width: 430px;
+    border-radius: 20px 20px 0 0;
+    padding: 20px;
+    box-sizing: border-box;
+    max-height: 85vh;
+    overflow-y: auto;
+    animation: slideUp 0.25s ease-out;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+  .modal-title { font-size: 17px; font-weight: 600; margin-bottom: 15px; text-align: center; }
+  .form-group { margin-bottom: 14px; }
+  .form-group label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; }
+  .form-control {
+    width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #DDD; font-size: 14px;
+  }
+  .photo-preview {
+    width: 100%; max-height: 140px; object-fit: contain; margin-top: 8px; border-radius: 8px; display: none; background: #eee;
+  }
+  .btn-submit {
+    width: 100%; padding: 12px; background: #29B6F6; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 10px;
+  }
+  .btn-clear {
+    width: 100%; padding: 10px; background: transparent; color: #E74C3C; border: none; font-size: 13px; margin-top: 4px; cursor: pointer;
+  }
+
+  /* 分頁切換按鈕 */
+  .tab-buttons { display: flex; margin: 4px 16px 10px; border-radius: 8px; background: #EEE; padding: 2px; }
+  .tab-btn { flex: 1; text-align: center; padding: 7px; font-size: 13px; border: none; background: none; border-radius: 6px; cursor: pointer; }
+  .tab-btn.active { background: #FFF; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  
+  .timeline-container { padding: 10px 20px; display: none; }
+  .timeline-item { position: relative; padding-left: 20px; border-left: 2px solid #29B6F6; padding-bottom: 18px; }
+  .timeline-item::before {
+    content: ''; position: absolute; left: -6px; top: 0; width: 10px; height: 10px; border-radius: 50%; background: #29B6F6;
+  }
+</style>
+</head>
+<body>
+
+<div class="app-container">
+  <div class="nav-header">
+    <span class="nav-title">乳牙記錄</span>
+    <div class="child-selector-box">
+      <select id="childSelect" class="child-select" onchange="onChildChange()"></select>
+      <button class="btn-icon" title="新增小孩" onclick="addNewChild()">＋</button>
+    </div>
+  </div>
+
+  <div class="baby-profile-bar">
+    <div class="input-row">
+      <label>小孩名字</label>
+      <input type="text" id="babyName" placeholder="輸入名字">
+    </div>
+    <div class="input-row">
+      <label>出生日期</label>
+      <input type="date" id="babyBirth">
+    </div>
+    <button class="delete-child-btn" onclick="deleteCurrentChild()">刪除此小孩資料</button>
+  </div>
+
+  <div class="stats-banner">
+    <span>🦷 已長出：<b id="teethEruptedCount">0</b> / 20</span>
+    <span>⏳ 還剩：<b id="teethRemainingCount">20</b> 顆</span>
+    <span>🍂 已掉牙：<b id="teethMoltedCount">0</b></span>
+  </div>
+
+  <!-- 圓形牙齒分佈盤 -->
+  <div class="teeth-circle-area" id="circleCanvas">
+    <div class="direction-label dir-right">右</div>
+    <div class="direction-label dir-left">左</div>
+
+    <div class="center-baby">
+      <div class="baby-avatar">👶</div>
+      <span class="baby-name-center" id="displayCenterName">--</span>
+      <span class="baby-age-center" id="displayCenterAge">--</span>
+    </div>
+  </div>
+
+  <div class="tab-buttons">
+    <button class="tab-btn active" onclick="switchView('list')">牙位紀錄清單</button>
+    <button class="tab-btn" onclick="switchView('timeline')">生長時間軸</button>
+  </div>
+
+  <div class="list-section" id="listView">
+    <div class="list-header">
+      <span>名稱</span>
+      <span>長牙</span>
+      <span>掉牙</span>
+      <span></span>
+    </div>
+    <div id="recordList"></div>
+  </div>
+
+  <div class="timeline-container" id="timelineView"></div>
+</div>
+
+<!-- 彈出編輯視窗 -->
+<div class="modal-overlay" id="toothModal" onclick="closeModalOnBg(event)">
+  <div class="modal-content">
+    <div class="modal-title" id="modalTitle">記錄牙齒</div>
+
+    <div class="form-group">
+      <label>📅 長牙日期</label>
+      <input type="date" class="form-control" id="modalEruptDate">
+    </div>
+
+    <div class="form-group">
+      <label>🦷 長牙狀態</label>
+      <select class="form-control" id="modalStatus">
+        <option value="">未長出</option>
+        <option value="冒出牙尖">冒出牙尖</option>
+        <option value="已長出">已長出</option>
+        <option value="完整長出">完整長出</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>🍂 掉牙日期 (換牙期記錄)</label>
+      <input type="date" class="form-control" id="modalMoltDate">
+    </div>
+
+    <div class="form-group">
+      <label>📝 備註 (如：愛咬固齒器、微發燒)</label>
+      <input type="text" class="form-control" id="modalNotes" placeholder="記錄這顆牙的小故事">
+    </div>
+
+    <div class="form-group">
+      <label>📸 上傳牙齒照片</label>
+      <input type="file" id="modalPhotoInput" accept="image/*" class="form-control" onchange="previewImage(event)">
+      <img id="photoPreview" class="photo-preview">
+    </div>
+
+    <button class="btn-submit" onclick="saveToothData()">儲存記錄</button>
+    <button class="btn-clear" onclick="clearToothData()">清除此顆牙紀錄</button>
+  </div>
+</div>
+
+<script>
+const TEETH_DATA = [
+  // 上排牙齒
+  { id: 4,  name: "4 上門牙(右)",     x: 144, y: 26,  color: "color-blue",    refMolt: "約6-7歲" },
+  { id: 3,  name: "3 上門牙(左)",     x: 196, y: 26,  color: "color-blue",    refMolt: "約6-7歲" },
+  { id: 6,  name: "6 上側門牙(右)",   x: 96,  y: 42,  color: "color-green",   refMolt: "約7-8歲" },
+  { id: 5,  name: "5 上側門牙(左)",   x: 244, y: 42,  color: "color-green",   refMolt: "約7-8歲" },
+  { id: 14, name: "14 犬齒(右上)",    x: 54,  y: 80,  color: "color-mustard", refMolt: "約10-12歲" },
+  { id: 13, name: "13 犬齒(左上)",    x: 286, y: 80,  color: "color-mustard", refMolt: "約10-12歲" },
+  { id: 10, name: "10 第一臼齒(右上)", x: 26,  y: 134, color: "color-purple",  refMolt: "約9-11歲" },
+  { id: 9,  name: "9 第一臼齒(左上)",  x: 314, y: 134, color: "color-purple",  refMolt: "約9-11歲" },
+  { id: 20, name: "20 第二臼齒(右上)", x: 18,  y: 190, color: "color-orange",  refMolt: "約10-12歲" },
+  { id: 19, name: "19 第二臼齒(左上)", x: 322, y: 190, color: "color-orange",  refMolt: "約10-12歲" },
+
+  // 下排牙齒
+  { id: 18, name: "18 第二臼齒(右下)", x: 20,  y: 240, color: "color-orange",  refMolt: "約10-12歲" },
+  { id: 17, name: "17 第二臼齒(左下)", x: 320, y: 240, color: "color-orange",  refMolt: "約10-12歲" },
+  { id: 12, name: "12 第一臼齒(右下)", x: 36,  y: 285, color: "color-purple",  refMolt: "約9-11歲" },
+  { id: 11, name: "11 第一臼齒(左下)", x: 304, y: 285, color: "color-purple",  refMolt: "約9-11歲" },
+  { id: 16, name: "16 犬齒(右下)",    x: 68,  y: 318, color: "color-mustard", refMolt: "約9-12歲" },
+  { id: 15, name: "15 犬齒(左下)",    x: 272, y: 318, color: "color-mustard", refMolt: "約9-12歲" },
+  { id: 8,  name: "8 下側門牙(右)",   x: 106, y: 338, color: "color-green",   refMolt: "約7-8歲" },
+  { id: 7,  name: "7 下側門牙(左)",   x: 234, y: 338, color: "color-green",   refMolt: "約7-8歲" },
+  { id: 2,  name: "2 下門牙(右)",     x: 148, y: 346, color: "color-blue",    refMolt: "約6-7歲" },
+  { id: 1,  name: "1 下門牙(左)",     x: 192, y: 346, color: "color-blue",    refMolt: "約6-7歲" }
+];
+
+let appData = JSON.parse(localStorage.getItem('multi_baby_teeth_db')) || {
+  activeChildId: 'c1',
+  children: {
+    'c1': {
+      id: 'c1',
+      name: '恩恩',
+      birth: '2020-08-15',
+      teeth: {}
+    }
+  }
+};
+
+let activeToothId = null;
+
+function saveDb() {
+  localStorage.setItem('multi_baby_teeth_db', JSON.stringify(appData));
+}
+
+function getCurrentChild() {
+  return appData.children[appData.activeChildId] || Object.values(appData.children)[0];
+}
+
+function calcAgeDiff(startDateStr, endDateStr) {
+  if (!startDateStr || !endDateStr) return "";
+  const start = new Date(startDateStr);
+  const end = new Date(endDateStr);
+  if (end < start) return "0個月";
+
+  let years = end.getFullYear() - start.getFullYear();
+  let months = end.getMonth() - start.getMonth();
+  let days = end.getDate() - start.getDate();
+
+  if (days < 0) {
+    months--;
+    const prevMonthDays = new Date(end.getFullYear(), end.getMonth(), 0).getDate();
+    days += prevMonthDays;
+  }
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+
+  let text = "";
+  if (years > 0) text += `${years}歲`;
+  if (months > 0 || years > 0) text += `${months}個月`;
+  if (years === 0 && months === 0) text = `${days}天`;
+  return text;
+}
+
+function refreshChildSelect() {
+  const select = document.getElementById('childSelect');
+  select.innerHTML = '';
+  Object.values(appData.children).forEach(child => {
+    const opt = document.createElement('option');
+    opt.value = child.id;
+    opt.innerText = child.name || '未命名';
+    if (child.id === appData.activeChildId) opt.selected = true;
+    select.appendChild(opt);
+  });
+}
+
+function onChildChange() {
+  const select = document.getElementById('childSelect');
+  appData.activeChildId = select.value;
+  saveDb();
+  loadCurrentChildData();
+}
+
+function addNewChild() {
+  const name = prompt("請輸入小孩的名字：", "二寶");
+  if (!name) return;
+  const newId = 'c_' + Date.now();
+  const today = new Date().toISOString().split('T')[0];
+  appData.children[newId] = {
+    id: newId,
+    name: name,
+    birth: today,
+    teeth: {}
+  };
+  appData.activeChildId = newId;
+  saveDb();
+  refreshChildSelect();
+  loadCurrentChildData();
+}
+
+function deleteCurrentChild() {
+  const childKeys = Object.keys(appData.children);
+  if (childKeys.length <= 1) {
+    alert("至少需要保留一位小孩的資料！");
+    return;
+  }
+  const cur = getCurrentChild();
+  if (confirm(`確定要刪除「${cur.name}」的紀錄嗎？`)) {
+    delete appData.children[cur.id];
+    appData.activeChildId = Object.keys(appData.children)[0];
+    saveDb();
+    refreshChildSelect();
+    loadCurrentChildData();
+  }
+}
+
+function loadCurrentChildData() {
+  const cur = getCurrentChild();
+  document.getElementById('babyName').value = cur.name;
+  document.getElementById('babyBirth').value = cur.birth;
+  refreshAll();
+}
+
+function renderCircle() {
+  const container = document.getElementById('circleCanvas');
+  container.querySelectorAll('.tooth-item').forEach(el => el.remove());
+
+  const cur = getCurrentChild();
+  const teethRecords = cur.teeth || {};
+
+  TEETH_DATA.forEach(tooth => {
+    const el = document.createElement('div');
+    el.className = `tooth-item ${tooth.color}`;
+    el.innerText = tooth.id;
+
+    el.style.left = `${tooth.x}px`;
+    el.style.top = `${tooth.y}px`;
+
+    const record = teethRecords[tooth.id];
+    if (record && (record.date || record.status)) {
+      const badge = document.createElement('div');
+      badge.className = 'check-badge';
+      badge.innerHTML = '✓';
+      el.appendChild(badge);
+    }
+
+    if (record && record.moltDate) {
+      el.classList.add('status-molt');
+    }
+
+    el.onclick = () => openToothModal(tooth.id);
+    container.appendChild(el);
+  });
+}
+
+function renderList() {
+  const listContainer = document.getElementById('recordList');
+  listContainer.innerHTML = '';
+  const cur = getCurrentChild();
+  const teethRecords = cur.teeth || {};
+  const sorted = [...TEETH_DATA].sort((a,b) => a.id - b.id);
+
+  sorted.forEach(tooth => {
+    const record = teethRecords[tooth.id] || {};
+    const row = document.createElement('div');
+    row.className = 'record-row';
+    row.onclick = () => openToothModal(tooth.id);
+
+    const ageAtErupt = record.date ? calcAgeDiff(cur.birth, record.date) : '';
+    const eruptText = record.date ? `
+      <div class="cell-date-box">
+        <span class="cell-age">${ageAtErupt || '已長出'}</span>
+        <span class="cell-date">${record.date}</span>
+      </div>
+    ` : '<span style="color:#bbb;">尚未記錄</span>';
+
+    const moltText = record.moltDate 
+      ? `<span class="cell-date" style="color:#C0392B;">${record.moltDate}</span>` 
+      : `<span class="cell-molt">${tooth.refMolt}</span>`;
+
+    row.innerHTML = `
+      <span class="cell-name">${tooth.id} ${tooth.name.split(' ')[1] || tooth.name}</span>
+      <div>${eruptText}</div>
+      <div>${moltText}</div>
+      <span style="color:#ccc;">›</span>
+    `;
+    listContainer.appendChild(row);
+  });
+}
+
+function renderTimeline() {
+  const container = document.getElementById('timelineView');
+  container.innerHTML = '';
+  const cur = getCurrentChild();
+  const teethRecords = cur.teeth || {};
+
+  const recordedTeeth = TEETH_DATA
+    .filter(t => teethRecords[t.id] && teethRecords[t.id].date)
+    .sort((a, b) => new Date(teethRecords[a.id].date) - new Date(teethRecords[b.id].date));
+
+  if (recordedTeeth.length === 0) {
+    container.innerHTML = '<div style="color:#999;text-align:center;padding:20px;">尚無記錄，點擊上方牙齒開始記錄！</div>';
+    return;
+  }
+
+  recordedTeeth.forEach(t => {
+    const rec = teethRecords[t.id];
+    const age = calcAgeDiff(cur.birth, rec.date);
+    const item = document.createElement('div');
+    item.className = 'timeline-item';
+    item.innerHTML = `
+      <div style="font-weight:600;font-size:14px;color:#333;">${t.id}號 ${t.name}</div>
+      <div style="font-size:12px;color:#29B6F6;margin:2px 0;">${rec.date}（${age}）· ${rec.status || '已長出'}</div>
+      ${rec.notes ? `<div style="font-size:12px;color:#666;">💬 ${rec.notes}</div>` : ''}
+      ${rec.photo ? `<img src="${rec.photo}" style="width:70px;height:70px;border-radius:6px;object-fit:cover;margin-top:6px;">` : ''}
+    `;
+    container.appendChild(item);
+  });
+}
+
+function updateSummary() {
+  const cur = getCurrentChild();
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('displayCenterAge').innerText = calcAgeDiff(cur.birth, today);
+  document.getElementById('displayCenterName').innerText = cur.name || '寶寶';
+
+  const teethRecords = cur.teeth || {};
+  let eruptedCount = 0;
+  let moltedCount = 0;
+
+  Object.values(teethRecords).forEach(r => {
+    if (r.date || r.status) eruptedCount++;
+    if (r.moltDate) moltedCount++;
+  });
+
+  document.getElementById('teethEruptedCount').innerText = eruptedCount;
+  document.getElementById('teethRemainingCount').innerText = 20 - eruptedCount;
+  document.getElementById('teethMoltedCount').innerText = moltedCount;
+}
+
+function openToothModal(id) {
+  activeToothId = id;
+  const tooth = TEETH_DATA.find(t => t.id === id);
+  const cur = getCurrentChild();
+  const rec = (cur.teeth && cur.teeth[id]) || {};
+
+  document.getElementById('modalTitle').innerText = `${tooth.id}號 - ${tooth.name}`;
+  document.getElementById('modalEruptDate').value = rec.date || '';
+  document.getElementById('modalStatus').value = rec.status || '';
+  document.getElementById('modalMoltDate').value = rec.moltDate || '';
+  document.getElementById('modalNotes').value = rec.notes || '';
+
+  const preview = document.getElementById('photoPreview');
+  if (rec.photo) {
+    preview.src = rec.photo;
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+  }
+
+  document.getElementById('toothModal').style.display = 'flex';
+}
+
+function closeModalOnBg(e) {
+  if (e.target.id === 'toothModal') {
+    document.getElementById('toothModal').style.display = 'none';
+  }
+}
+
+function previewImage(event) {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = document.getElementById('photoPreview');
+      img.src = e.target.result;
+      img.style.display = 'block';
+    }
+    reader.readAsDataURL(file);
+  }
+}
+
+function saveToothData() {
+  if (!activeToothId) return;
+  const cur = getCurrentChild();
+  if (!cur.teeth) cur.teeth = {};
+
+  const eruptDate = document.getElementById('modalEruptDate').value;
+  const status = document.getElementById('modalStatus').value;
+  const moltDate = document.getElementById('modalMoltDate').value;
+  const notes = document.getElementById('modalNotes').value;
+  const preview = document.getElementById('photoPreview');
+
+  cur.teeth[activeToothId] = {
+    date: eruptDate,
+    status: status,
+    moltDate: moltDate,
+    notes: notes,
+    photo: preview.style.display === 'block' ? preview.src : ''
+  };
+
+  saveDb();
+  document.getElementById('toothModal').style.display = 'none';
+  refreshAll();
+}
+
+function clearToothData() {
+  if (!activeToothId) return;
+  const cur = getCurrentChild();
+  if (cur.teeth && cur.teeth[activeToothId]) {
+    delete cur.teeth[activeToothId];
+    saveDb();
+  }
+  document.getElementById('toothModal').style.display = 'none';
+  refreshAll();
+}
+
+function switchView(tab) {
+  const tabs = document.querySelectorAll('.tab-btn');
+  tabs[0].classList.toggle('active', tab === 'list');
+  tabs[1].classList.toggle('active', tab === 'timeline');
+  document.getElementById('listView').style.display = tab === 'list' ? 'block' : 'none';
+  document.getElementById('timelineView').style.display = tab === 'timeline' ? 'block' : 'none';
+  if (tab === 'timeline') renderTimeline();
+}
+
+function refreshAll() {
+  renderCircle();
+  renderList();
+  renderTimeline();
+  updateSummary();
+}
+
+document.getElementById('babyName').addEventListener('input', (e) => {
+  const cur = getCurrentChild();
+  cur.name = e.target.value;
+  saveDb();
+  refreshChildSelect();
+  updateSummary();
+});
+
+document.getElementById('babyBirth').addEventListener('change', (e) => {
+  const cur = getCurrentChild();
+  cur.birth = e.target.value;
+  saveDb();
+  refreshAll();
+});
+
+window.onload = () => {
+  refreshChildSelect();
+  loadCurrentChildData();
+};
+</script>
+
+</body>
+</html>
